@@ -18,6 +18,7 @@ export function createShoppingStore({owner=null,storage,newId}){
     const found=items.find(x=>(ingredient&&x.ingredient===ingredient)||normalize(x.name)===normalize(name));
     if(found){if(found.checked){found.checked=false;count++;}}else{items.push({id:newId(),name,ingredient,checked:false});count++;}
    }await persist(items);return count;}),
+  importItems:incoming=>run(async()=>{guard();const plan=planShoppingImport(state.items,incoming);if(plan.added)await persist(plan.items);return {added:plan.added,skipped:plan.skipped};}),
   check:(id,checked)=>run(async()=>{guard();await persist(state.items.map(x=>x.id===id?{...x,checked:!!checked}:x));}),
   remove:id=>run(async()=>{guard();const item=state.items.find(x=>x.id===id);if(!item)return;await persist(state.items.filter(x=>x.id!==id));return item;}),
   restore:item=>run(async()=>{guard();validate(item);if(state.items.some(x=>x.id===item.id||normalize(x.name)===normalize(item.name)||item.ingredient&&x.ingredient===item.ingredient))return;await persist([...state.items,item]);})
@@ -32,4 +33,36 @@ export function shoppingDraft(entry,id,translate=x=>x){
 export function shoppingView(items,filter='pending',query=''){
  const q=normalize(query);
  return items.filter(x=>(filter==='all'||(filter==='bought'?x.checked:!x.checked))&&(!q||normalize(x.name).includes(q)||normalize(x.displayName||'').includes(q))).sort((a,b)=>Number(a.checked)-Number(b.checked));
+}
+
+const BACKUP_ERROR='한칸 장보기 백업 파일인지 확인해 주세요.';
+function backupItems(items){
+ if(!Array.isArray(items)||items.length>100)throw Error(BACKUP_ERROR);
+ const ids=new Set();
+ return items.map(raw=>{
+  try{validate(raw);}catch{throw Error(BACKUP_ERROR);}
+  if(raw.id.length>80||!raw.id.trim()||ids.has(raw.id))throw Error(BACKUP_ERROR);
+  ids.add(raw.id);
+  return {id:raw.id,name:raw.name.trim(),ingredient:raw.ingredient,checked:raw.checked};
+ });
+}
+export function readShoppingBackup(text){
+ try{
+  if(typeof text!=='string'||text.length>1024*1024)throw Error();
+  const data=JSON.parse(text);
+  if(data?.format!=='hankan-shopping-backup-v1')throw Error();
+  return backupItems(data.items);
+ }catch{throw Error(BACKUP_ERROR);}
+}
+export function makeShoppingBackup(items){
+ return JSON.stringify({format:'hankan-shopping-backup-v1',items:backupItems(items)},null,2);
+}
+export function planShoppingImport(existing,incoming){
+ const items=backupItems(existing),entries=backupItems(incoming);let added=0,skipped=0;
+ for(const entry of entries){
+  if(items.some(x=>x.id===entry.id||normalize(x.name)===normalize(entry.name)||(entry.ingredient&&entry.ingredient===x.ingredient))){skipped++;continue;}
+  items.push(entry);added++;
+ }
+ if(items.length>100)throw Error('가져오면 장보기 목록의 최대 100개를 초과해요.');
+ return {items,added,skipped};
 }

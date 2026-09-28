@@ -1,5 +1,22 @@
 // Korean source strings are stable message keys. User-entered text never goes through this catalog.
 export const en={
+  "취소": "Cancel",
+  "외 {count}개 항목": "And {count} more items",
+  "한칸 장보기 백업": "Hankan shopping backup",
+  "한칸 장보기 백업 파일인지 확인해 주세요.": "Please choose a Hankan shopping backup file.",
+  "가져오면 장보기 목록의 최대 100개를 초과해요.": "Importing would exceed the shopping list limit of 100 items.",
+  "장보기 백업·복원": "Shopping backup and restore",
+  "구매 체크까지 파일에 보관해요. 냉장고 재고 백업과는 별도이며, 다른 기기에서 직접 가져올 수 있어요.": "Save items and purchase checks to a file. This is separate from pantry backups and can be imported on another device.",
+  "장보기 파일 내보내기": "Export shopping file",
+  "장보기 파일 가져오기": "Import shopping file",
+  "백업 파일을 저장하거나 공유해 주세요.": "Save or share the backup file.",
+  "가져올 장보기 확인": "Review shopping import",
+  "파일의 항목 {count}개를 확인했어요.": "Found {count} items in the file.",
+  "새 항목 {added}개 · 중복 {skipped}개 건너뛰기": "Add {added} new items \u00b7 Skip {skipped} duplicates",
+  "중복 항목의 현재 이름과 구매 체크는 유지해요. 새 항목만 추가합니다.": "Existing names and purchase checks stay unchanged. Only new items are added.",
+  "장보기 {added}개를 가져왔어요. 중복 {skipped}개는 유지했어요.": "Imported {added} shopping items. Kept {skipped} existing duplicates unchanged.",
+  "확인하고 장보기 가져오기": "Confirm shopping import",
+
   "구매 예정 {pending}개 · 구매 완료 {bought}개": "To buy: {pending} \u00b7 Bought: {bought}",
   "장보기 검색": "Search shopping list",
   "이 조건에 맞는 장보기 항목이 없어요.": "No shopping items match these filters.",
