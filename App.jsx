@@ -18,6 +18,8 @@ import { LocaleProvider, useI18n } from './src/LocaleProvider';
 import { LANGUAGES, message, quantityLabel, shortDate, localeTag } from './src/i18n.mjs';
 import { APP_VERSION, ANDROID_BUILD, IOS_BUILD } from './src/version';
 import {createShoppingStore,shoppingDraft} from './src/shopping.mjs';
+import {QuickUsePanel} from './src/QuickUsePanel';
+import {usableForCooking} from './src/consumption.mjs';
 import {CookingPanel} from './src/CookingPanel';
 import {ShoppingPanel} from './src/ShoppingPanel';
 
@@ -306,12 +308,13 @@ function Application() {
   const sorted = items.filter(i => (filter === '전체' || filter === i.place || filter === '임박' && daysLeft(i.date, day) !== null && daysLeft(i.date, day) >= 0 && daysLeft(i.date, day) <= 3 || filter === '지남' && daysLeft(i.date, day) !== null && daysLeft(i.date, day) < 0) && (i.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) || t(i.ingredient).toLocaleLowerCase().includes(search.toLocaleLowerCase()))).sort((a, b) => (daysLeft(a.date, day) ?? 99999) - (daysLeft(b.date, day) ?? 99999));
   const recipes = recommend(items, day, true);
   const recipe=recipes.find(r=>r.id===recipeSelection?.id)||null;
+  const [quickUse,setQuickUse]=useState(null);
   const [cooking,setCooking]=useState(null),[recipeBusy,setRecipeBusy]=useState(false),[recipeError,setRecipeError]=useState('');
   useEffect(()=>setRecipeError(''),[recipeSelection]);
   const shopping=useMemo(()=>createShoppingStore({owner,storage:AsyncStorage,newId:randomUUID}),[owner]);
   const shoppingSnapshot=useSyncExternalStore(shopping.subscribe,shopping.getSnapshot,shopping.getSnapshot);
   const shoppingActive=useRef(shopping),recipeLock=useRef(false);shoppingActive.current=shopping;
-  useEffect(()=>{shopping.load();setCooking(null);setRecipeBusy(false);},[shopping]);
+  useEffect(()=>{shopping.load();setCooking(null);setQuickUse(null);setRecipeBusy(false);},[shopping]);
   const addMissing=async()=>{if(recipeLock.current||!recipe)return;recipeLock.current=true;setRecipeBusy(true);setRecipeError('');try{await shopping.add(recipe.missing.map(ingredient=>({ingredient,name:ingredient})));if(shoppingActive.current===shopping){setRecipe(null);setPage('shopping');setNotice('부족한 주재료를 장보기 목록에 담았어요. 중복 항목은 하나로 모아요.');}}catch(e){if(shoppingActive.current===shopping)setRecipeError(e.message);}finally{recipeLock.current=false;if(shoppingActive.current===shopping)setRecipeBusy(false);}};
 
   if (!authReady || !snapshot.ready) return <SafeAreaView style={s.loading}><ActivityIndicator color={colors.green} /><Text style={s.muted}>{t("냉장고를 열고 있어요…")}</Text></SafeAreaView>;
@@ -363,7 +366,7 @@ function Application() {
                     days: -d
                   }) : d === 0 ? t("오늘까지") : t('D−{days}', {
                     days: d
-                  })}</Text><Text style={s.small}>{shortDate(item.date, locale)}</Text><Pressable accessibilityRole="button" testID={`use-${item.name}`} onPress={() => run(() => remove(item.id))} style={{
+                  })}</Text><Text style={s.small}>{shortDate(item.date, locale)}</Text>{usableForCooking(item,day)&&<Pressable accessibilityRole="button" testID={`quick-use-${item.id}`} onPress={()=>setQuickUse(snapshot.records.find(r=>r.id===item.id))} style={{paddingVertical:10}}><Text style={s.link}>{t('일부 사용')}</Text></Pressable>}<Pressable accessibilityRole="button" testID={`use-${item.name}`} onPress={() => run(() => remove(item.id))} style={{
                   paddingVertical: 10
                 }}><Text style={s.small}>{t("다 썼어요")}</Text></Pressable></View></View>;
           })}
@@ -470,6 +473,7 @@ function Application() {
             setRecipe(null);
             setPage('pantry');
           }}>{t("재료 정리하러 가기")}</Button></>}</Sheet>
+  <Sheet visible={!!quickUse} onClose={()=>setQuickUse(null)} title={t('재료 사용량 기록')}>{quickUse&&<QuickUsePanel key={quickUse.mutationId} record={quickUse} onConfirm={async selections=>{const receipt=await repo.consume(selections);if(activeRepo.current===repo){setQuickUse(null);setUndo({repo,consumption:receipt});setNotice('확인한 사용량을 차감했어요. 되돌리기로 취소할 수 있어요.');}}}/>}</Sheet>
   <Sheet visible={!!cooking} onClose={()=>setCooking(null)} title={t('요리에 사용한 수량 기록')}>{cooking&&<CookingPanel recipe={cooking.recipe} records={cooking.records} onConfirm={async selections=>{const receipt=await repo.consume(selections);if(activeRepo.current===repo){setCooking(null);setUndo({repo,consumption:receipt});setNotice('확인한 사용량을 차감했어요. 되돌리기로 취소할 수 있어요.');setPage('pantry');}}}/>}</Sheet>
   <Sheet visible={!!importPreview} onClose={() => setImportPreview(null)} title={t("재료를 가져올까요?")}><Text style={s.body}>{t('{count}개 기록을 확인했어요. 같은 기록은 현재 내용을 유지하며, 새 기록만 추가합니다.', {
             count: importPreview?.length || 0

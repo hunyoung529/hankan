@@ -37,7 +37,7 @@ test('all catalog interpolation parameters are preserved in English',()=>{
 });
 test('authored UI messages, recipe content, enums and application errors have English translations',()=>{
  const keys=new Set();
- for(const filename of ['App.jsx','src/CookingPanel.jsx','src/ShoppingPanel.jsx','src/LocaleProvider.jsx','src/reminderPlan.mjs','src/i18n.mjs']){
+ for(const filename of ['App.jsx','src/CookingPanel.jsx','src/QuickUsePanel.jsx','src/ShoppingPanel.jsx','src/LocaleProvider.jsx','src/reminderPlan.mjs','src/i18n.mjs']){
   const ast=parse(readFileSync(new URL(filename,root),'utf8'),{sourceType:'module',plugins:['jsx']});
   traverse(ast,{
    CallExpression(p){if(!['t','message'].includes(p.node.callee.name))return;const arg=p.get('arguments.0');if(!arg?.node)return;if(arg.isStringLiteral())keys.add(arg.node.value);else if(arg.isConditionalExpression())for(const k of ['consequent','alternate'])if(arg.node[k].type==='StringLiteral')keys.add(arg.node[k].value);},

@@ -1,5 +1,12 @@
 // Korean source strings are stable message keys. User-entered text never goes through this catalog.
 export const en={
+  "일부 사용": "Use some",
+  "재료 사용량 기록": "Record item usage",
+  "현재 보유: {amount}": "Currently stored: {amount}",
+  "사용 후 남는 수량: {amount}": "Remaining after use: {amount}",
+  "1만큼 사용": "Use 1",
+  "실제 사용량을 확인하세요. 단위는 자동 환산하지 않으며, 확인 전에는 수량이 바뀌지 않아요.": "Check the amount actually used. Units are not converted, and quantities stay unchanged until you confirm.",
+
   "취소": "Cancel",
   "외 {count}개 항목": "And {count} more items",
   "한칸 장보기 백업": "Hankan shopping backup",
