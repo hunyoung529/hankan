@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "한칸",
+    "slug": "hankan-mobile",
+    "scheme": "hankan",
+    "version": "0.7.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.hankan.app",
+      "supportsTablet": true,
+      "buildNumber": "7",
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": [
+          "ko",
+          "en"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.hankan.app",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "versionCode": 7
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "식품 라벨의 날짜를 읽기 위해 선택한 사진을 사용합니다.",
+          "cameraPermission": "식품 라벨의 소비기한을 촬영합니다.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#356a50"
+        }
+      ],
+      "./plugins/withOcrBuildInputs.cjs"
+    ],
+    "web": {
+      "output": "single",
+      "name": "한칸",
+      "shortName": "한칸"
+    },
+    "locales": {
+      "ko": "./locales/ko.json",
+      "en": "./locales/en.json"
+    }
+  }
+}

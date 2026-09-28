@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Hankan",
+    "NSCameraUsageDescription": "Photograph food labels to read product names and dates.",
+    "NSPhotoLibraryUsageDescription": "Read product names and dates from a food label photo you choose."
+  },
+  "android": {
+    "app_name": "Hankan"
+  }
+}

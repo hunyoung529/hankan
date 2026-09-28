@@ -1,0 +1,34 @@
+# Dependencies and generated app projects
+node_modules/
+.expo/
+/dist/
+/android/
+/ios/
+build/
+.gradle/
+.cxx/
+Pods/
+__pycache__/
+
+# Local configuration and signing material
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.mobileprovision
+*.pem
+local.properties
+
+# Builds, logs and local distribution links
+*.log
+*.apk
+*.aab
+*.ipa
+*.zip
+/download.json
+*.url
+.DS_Store
+Thumbs.db

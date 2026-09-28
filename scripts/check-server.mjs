@@ -1,0 +1,4 @@
+const url=process.env.EXPO_PUBLIC_SUPABASE_URL,key=process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+if(!/^https:\/\/[^/]+\.supabase\.co$/.test(url||'')||!key?.startsWith('sb_publishable_'))throw Error('Load .env.local first');
+const endpoints=[['anonymous table access','/rest/v1/pantry_items?select=id',{}],['anonymous sync RPC','/rest/v1/rpc/sync_pantry',{method:'POST',body:JSON.stringify({p_changes:[]})}]];
+for(const [name,path,options] of endpoints){const response=await fetch(url+path,{...options,headers:{apikey:key,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000)});const result=await response.json();if(![401,403].includes(response.status)||result.code!=='42501')throw Error(`${name}: unexpected response ${response.status} ${result.code}`);console.log(`${name}: denied as expected (${response.status})`)}

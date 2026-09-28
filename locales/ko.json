@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "한칸",
+    "NSCameraUsageDescription": "식품 라벨의 이름과 날짜를 촬영합니다.",
+    "NSPhotoLibraryUsageDescription": "선택한 식품 라벨 사진에서 이름과 날짜를 읽습니다."
+  },
+  "android": {
+    "app_name": "한칸"
+  }
+}
