@@ -121,7 +121,7 @@ npx expo prebuild --platform android --no-install
 npx expo run:android
 ```
 
-이번 작업에서 `assembleRelease`로 Android 64비트(arm64-v8a) 테스트 APK를 만들었습니다. Android 7(API 24) 이상을 대상으로 하며, 앱 버전은 0.5.0입니다. JavaScript가 APK에 포함되어 있어 별도 Metro 개발 서버 없이 실행하는 빌드입니다. 기본 개발용 서명을 사용했으며 실제 휴대폰 설치/실행 검증을 마쳤다는 뜻은 아닙니다. 결과 파일은 `C:/Users/gnsdu/Desktop/dev/outputs/hankan-downloads/hankan-0.5-android-test.apk`입니다.
+이번 작업에서 `assembleRelease`로 Android 64비트(arm64-v8a) 테스트 APK를 만들었습니다. Android 7(API 24) 이상을 대상으로 하며, 앱 버전은 0.7.0입니다. JavaScript가 APK에 포함되어 있어 별도 Metro 개발 서버 없이 실행하는 빌드입니다. 기본 개발용 서명을 사용했으며 실제 휴대폰 설치/실행 검증을 마쳤다는 뜻은 아닙니다. 결과 파일은 `C:/Users/gnsdu/Desktop/dev/outputs/hankan-downloads/hankan-0.7-android-test.apk`입니다.
 
 Windows에서 폴더 경로가 길면 CMake 빌드가 실패할 수 있습니다. 이 경우 소스와 의존성을 짧은 임시 경로에 복사해 빌드하고, 기존 `.cxx`/`.gradle`/네이티브 `build` 캐시는 복사하지 않습니다. npm 패키지 내부의 `dist`와 JavaScript `build` 폴더는 필요합니다.
 
