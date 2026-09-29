@@ -1,5 +1,14 @@
 // Korean source strings are stable message keys. User-entered text never goes through this catalog.
 export const en={
+  "재료 상태": "Item status",
+  "날짜순": "By date",
+  "이름순": "By name",
+  "전체 {total}개 중 {count}개 표시": "Showing {count} of {total} items",
+  "보기 초기화": "Reset view",
+  "개봉 표시한 재료를 모았어요. 포장지의 개봉 후 보관 안내를 확인하세요.": "Items marked as opened. Check the label for storage instructions after opening.",
+  "날짜를 입력하지 않은 재료예요. 재료를 눌러 포장지의 날짜를 확인하고 등록하세요.": "These items have no date. Open an item to check and enter its printed date.",
+  "검색어나 보관 위치·상태 조건을 바꿔 보세요.": "Try a different search, storage location, or status.",
+
   "일부 사용": "Use some",
   "재료 사용량 기록": "Record item usage",
   "현재 보유: {amount}": "Currently stored: {amount}",

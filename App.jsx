@@ -6,6 +6,7 @@ import { randomUUID } from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { INGREDIENTS, today, daysLeft, inferIngredient, normalizeItem } from './src/domain.mjs';
+import {pantryView} from './src/pantryView.mjs';
 import { recommend } from './src/domain.mjs';
 import { createRepository, visibleItems } from './src/repository.mjs';
 import { cloud, cloudConfigured, cloudTransport } from './src/cloud';
@@ -70,6 +71,8 @@ function Application() {
   activeRepo.current = repo;
   const [page, setPage] = useState('pantry'),
     [filter, setFilter] = useState('전체'),
+    [pantryStatus,setPantryStatus]=useState('all'),
+    [pantrySort,setPantrySort]=useState('expiry'),
     [search, setSearch] = useState(''),
     [notice, setNotice] = useState(''),
     [undo, setUndo] = useState(null);
@@ -305,7 +308,8 @@ function Application() {
     await AsyncStorage.setItem('hankan-alerts-v1', String(value));
     setNotifyEnabled(value);
   });
-  const sorted = items.filter(i => (filter === '전체' || filter === i.place || filter === '임박' && daysLeft(i.date, day) !== null && daysLeft(i.date, day) >= 0 && daysLeft(i.date, day) <= 3 || filter === '지남' && daysLeft(i.date, day) !== null && daysLeft(i.date, day) < 0) && (i.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) || t(i.ingredient).toLocaleLowerCase().includes(search.toLocaleLowerCase()))).sort((a, b) => (daysLeft(a.date, day) ?? 99999) - (daysLeft(b.date, day) ?? 99999));
+  const sorted=pantryView(items,{place:filter,status:pantryStatus,sort:pantrySort,query:search,day,locale,translate:t});
+  const resetPantryView=()=>{setFilter('전체');setPantryStatus('all');setPantrySort('expiry');setSearch('');};
   const recipes = recommend(items, day, true);
   const recipe=recipes.find(r=>r.id===recipeSelection?.id)||null;
   const [quickUse,setQuickUse]=useState(null);
@@ -314,7 +318,7 @@ function Application() {
   const shopping=useMemo(()=>createShoppingStore({owner,storage:AsyncStorage,newId:randomUUID}),[owner]);
   const shoppingSnapshot=useSyncExternalStore(shopping.subscribe,shopping.getSnapshot,shopping.getSnapshot);
   const shoppingActive=useRef(shopping),recipeLock=useRef(false);shoppingActive.current=shopping;
-  useEffect(()=>{shopping.load();setCooking(null);setQuickUse(null);setRecipeBusy(false);},[shopping]);
+  useEffect(()=>{shopping.load();setCooking(null);setQuickUse(null);setFilter('전체');setPantryStatus('all');setPantrySort('expiry');setSearch('');setRecipeBusy(false);},[shopping]);
   const addMissing=async()=>{if(recipeLock.current||!recipe)return;recipeLock.current=true;setRecipeBusy(true);setRecipeError('');try{await shopping.add(recipe.missing.map(ingredient=>({ingredient,name:ingredient})));if(shoppingActive.current===shopping){setRecipe(null);setPage('shopping');setNotice('부족한 주재료를 장보기 목록에 담았어요. 중복 항목은 하나로 모아요.');}}catch(e){if(shoppingActive.current===shopping)setRecipeError(e.message);}finally{recipeLock.current=false;if(shoppingActive.current===shopping)setRecipeBusy(false);}};
 
   if (!authReady || !snapshot.ready) return <SafeAreaView style={s.loading}><ActivityIndicator color={colors.green} /><Text style={s.muted}>{t("냉장고를 열고 있어요…")}</Text></SafeAreaView>;
@@ -339,7 +343,7 @@ function Application() {
               }) : network.error ? t("오프라인 보관 중 · 다시 연결 필요") : pending.length ? t('{count}개 변경 전송 대기', {
                 count: pending.length
               }) : network.time ? t("서버에 동기화했어요") : t("서버 연결 중")}</Text><Text style={s.syncText}>›</Text></Pressable>
-    <View style={s.summary}>{[['전체', items.length, '보관 중'], ['임박', items.filter(x => daysLeft(x.date, day) !== null && daysLeft(x.date, day) >= 0 && daysLeft(x.date, day) <= 3).length, '3일 안에 확인'], ['지남', items.filter(x => daysLeft(x.date, day) !== null && daysLeft(x.date, day) < 0).length, '날짜 지남']].map(([f, count, label], index) => <Pressable key={f} onPress={() => setFilter(f)} style={[s.stat, {
+    <View style={s.summary}>{[['all', items.length, '보관 중'], ['urgent', items.filter(x => daysLeft(x.date, day) !== null && daysLeft(x.date, day) >= 0 && daysLeft(x.date, day) <= 3).length, '3일 안에 확인'], ['expired', items.filter(x => daysLeft(x.date, day) !== null && daysLeft(x.date, day) < 0).length, '날짜 지남']].map(([f, count, label], index) => <Pressable key={f} onPress={() => {setFilter('전체');setPantryStatus(f);setSearch('');}} style={[s.stat, {
               backgroundColor: ['#f0f3ec', '#f7ecdf', '#f5e9e4'][index]
             }]}><Text style={s.statNumber}>{count}</Text><Text style={s.statLabel}>{t(label)}</Text></Pressable>)}</View>
     {items.some(i => i.demo) && <View style={s.demo}><Text style={[s.muted, {
@@ -347,9 +351,15 @@ function Application() {
             }]}>{t("예시 재료가 포함되어 있어요.")}</Text><Pressable accessibilityRole="button" onPress={() => run(async () => {
               for (const item of items.filter(x => x.demo)) await repo.remove(item.id);
             })}><Text style={s.link}>{t("예시 지우기")}</Text></Pressable></View>}
-    <View style={s.sectionTitle}><Text style={s.h3}>{t("우리 집 냉장고")}</Text><Text style={s.muted}>{t("가까운 날짜부터")}</Text></View>
-    <Choices testID="filter" values={['전체', '냉장', '냉동', '실온', '임박', '지남']} value={filter} onChange={setFilter} labelFor={t} />
+    <View style={s.sectionTitle}><Text style={s.h3}>{t("우리 집 냉장고")}</Text><Text style={s.muted}>{t(pantrySort==='name'?'이름순':'가까운 날짜부터')}</Text></View>
+    <Choices testID="filter" values={['전체', '냉장', '냉동', '실온']} value={filter} onChange={setFilter} labelFor={t} />
+    <Text style={s.small}>{t('재료 상태')}</Text>
+    <Choices testID="pantry-status" values={[['all','전체'],['opened','개봉함'],['unknown','날짜 미정'],['urgent','임박'],['expired','지남']]} value={pantryStatus} onChange={setPantryStatus} labelFor={t}/>
+    <Choices testID="pantry-sort" values={[['expiry','날짜순'],['name','이름순']]} value={pantrySort} onChange={setPantrySort} labelFor={t}/>
     <Field label={t("재료 검색")} value={search} onChangeText={setSearch} placeholder={t("재료 이름으로 찾기")} />
+    <View style={s.sectionTitle}><Text accessibilityLiveRegion="polite" style={s.small}>{t('전체 {total}개 중 {count}개 표시',{total:items.length,count:sorted.length})}</Text>{(filter!=='전체'||pantryStatus!=='all'||pantrySort!=='expiry'||search)&&<Pressable accessibilityRole="button" testID="pantry-reset" onPress={resetPantryView} style={{paddingVertical:10}}><Text style={s.link}>{t('보기 초기화')}</Text></Pressable>}</View>
+    {pantryStatus==='opened'&&<Text style={s.muted}>{t('개봉 표시한 재료를 모았어요. 포장지의 개봉 후 보관 안내를 확인하세요.')}</Text>}
+    {pantryStatus==='unknown'&&<Text style={s.muted}>{t('날짜를 입력하지 않은 재료예요. 재료를 눌러 포장지의 날짜를 확인하고 등록하세요.')}</Text>}
     {sorted.map(item => {
             const d = daysLeft(item.date, day);
             return <View key={item.id} testID="ingredient-card" style={s.item}><FoodIcon name={item.ingredient} /><Pressable accessibilityRole="button" testID={`edit-${item.name}`} onPress={() => setEditor({
@@ -370,7 +380,7 @@ function Application() {
                   paddingVertical: 10
                 }}><Text style={s.small}>{t("다 썼어요")}</Text></Pressable></View></View>;
           })}
-    {!sorted.length && <View style={s.empty}><Fridge /><Text style={s.h3}>{items.length ? t("찾는 재료가 없어요.") : t("첫 재료를 기다리고 있어요.")}</Text><Text style={s.muted}>{t("포장지의 날짜를 찍거나 직접 입력해 보세요.")}</Text>{!items.length && !owner && <Button secondary testID="demo" onPress={demo}>{t("예시 냉장고 둘러보기")}</Button>}</View>}
+    {!sorted.length && <View style={s.empty}><Fridge /><Text style={s.h3}>{items.length ? t("찾는 재료가 없어요.") : t("첫 재료를 기다리고 있어요.")}</Text><Text style={s.muted}>{t(items.length?'검색어나 보관 위치·상태 조건을 바꿔 보세요.':'포장지의 날짜를 찍거나 직접 입력해 보세요.')}</Text>{!items.length && !owner && <Button secondary testID="demo" onPress={demo}>{t("예시 냉장고 둘러보기")}</Button>}</View>}
     <Text style={s.footnote}>{t('날짜는 포장지의 보관방법과 함께 확인해 주세요.\n사진은 서버로 보내지 않고 기기에서 읽어요.')}</Text>
    </>}
    {page==='shopping'&&<ShoppingPanel key={owner||'guest'} store={shopping} snapshot={shoppingSnapshot} onRegister={item=>setEditor(shoppingDraft(item,randomUUID(),t))}/>}
