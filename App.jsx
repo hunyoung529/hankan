@@ -18,7 +18,8 @@ import { Button, Choices, Field, Check, FoodIcon, Fridge, colors } from './src/u
 import { LocaleProvider, useI18n } from './src/LocaleProvider';
 import { LANGUAGES, message, quantityLabel, shortDate, localeTag } from './src/i18n.mjs';
 import { APP_VERSION, ANDROID_BUILD, IOS_BUILD } from './src/version';
-import {createShoppingStore,shoppingDraft} from './src/shopping.mjs';
+import {RebuyPanel} from './src/RebuyPanel';
+import {createShoppingStore,shoppingDraft,pantryShoppingEntry} from './src/shopping.mjs';
 import {QuickUsePanel} from './src/QuickUsePanel';
 import {usableForCooking} from './src/consumption.mjs';
 import {CookingPanel} from './src/CookingPanel';
@@ -462,7 +463,7 @@ function Application() {
             color: 'white'
           }}>×</Text></Pressable></View>}
   <View style={s.nav}><Pressable testID="nav-shopping" accessibilityRole="button" onPress={()=>setPage('shopping')} style={s.navItem}><Text style={[s.navText,page==='shopping'&&s.active]}>{t('장보기')}</Text></Pressable><Pressable testID="nav-pantry" accessibilityRole="button" onPress={() => setPage('pantry')} style={s.navItem}><Text style={[s.navText, page === 'pantry' && s.active]}>{t("▤ 우리 냉장고")}</Text></Pressable><Button testID="nav-add" onPress={() => setEditor(blank())} style={s.add}>＋</Button><Pressable testID="nav-recipes" accessibilityRole="button" onPress={() => setPage('recipes')} style={s.navItem}><Text style={[s.navText, page === 'recipes' && s.active]}>{t("♧ 오늘의 메뉴")}</Text></Pressable></View>
-  {editor && <Editor key={editor.id} editing={items.some(item=>item.id===editor.id)} initial={editor} previous={previousNames(items)} onClose={() => setEditor(null)} onSave={async (data, another) => {
+  {editor && <Editor key={editor.id} editing={items.some(item=>item.id===editor.id)} initial={editor} previous={previousNames(items)} shoppingReady={shoppingSnapshot.ready&&!shoppingSnapshot.error} onAddShopping={item=>shopping.add([pantryShoppingEntry(item)])} onClose={() => setEditor(null)} onSave={async (data, another) => {
         await repo.save(data);
         if (activeRepo.current !== repo) return;
         setEditor(another ? {
@@ -553,7 +554,9 @@ function Editor({
   initial,
   previous = [],
   onClose,
-  onSave
+  onSave,
+  onAddShopping,
+  shoppingReady=false
 }) {
   const {
     t
@@ -714,6 +717,7 @@ function Editor({
   const prior = previous.filter(x => x.id !== initial.id),
     isEdit = editing;
   return <Sheet visible title={isEdit ? t("재료 기록 수정") : t("사진 한 장, 한 칸 기록.")} onClose={onClose}>
+  {isEdit&&<RebuyPanel name={initial.name} disabled={busy||saving||!shoppingReady} onAdd={()=>onAddShopping(initial)}/>}
   {initial.fromShopping&&<Text style={s.warning}>{t("장보기 이름을 가져왔어요. 수량·보관 위치·포장지 날짜를 확인해 주세요. 저장 전에는 냉장고에 추가되지 않아요.")}</Text>}
   <Text style={s.muted}>{t("제품 이름이 있는 앞면과 날짜 부분을 따로 찍어도 돼요.")}</Text>
   <Choices testID="scan-target" values={[["both", "이름 + 날짜"], ["name", "품목명만"], ["date", "날짜만"]]} value={target} onChange={v => {

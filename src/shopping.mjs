@@ -66,3 +66,11 @@ export function planShoppingImport(existing,incoming){
  if(items.length>100)throw Error('가져오면 장보기 목록의 최대 100개를 초과해요.');
  return {items,added,skipped};
 }
+
+// Preserve a specific product name; a broad ingredient ID would collapse brands
+// and replace the visible product name with the translated category.
+export function pantryShoppingEntry(item){
+ const name=typeof item?.name==='string'?item.name.trim():'';
+ if(!name||name.length>50)throw Error('장볼 재료 이름을 입력해 주세요.');
+ return {name,ingredient:null};
+}

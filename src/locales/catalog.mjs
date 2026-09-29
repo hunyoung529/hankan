@@ -1,5 +1,13 @@
 // Korean source strings are stable message keys. User-entered text never goes through this catalog.
 export const en={
+  "다시 살 재료": "Buy this again",
+  "저장된 제품 이름만 장보기에 담아요. 냉장고 수량과 날짜, 수정 중인 내용은 바뀌지 않아요.": "Add only the saved product name to your shopping list. Pantry quantities, dates, and unsaved edits stay unchanged.",
+  "담는 중…": "Adding\u2026",
+  "이 이름으로 장보기 담기": "Add this name to shopping",
+  "같은 이름은 하나로 모으고, 구매 완료 항목은 다시 구매 예정으로 바꿔요.": "Matching names are kept as one entry. Bought items are marked to buy again.",
+  "구매 예정 목록에 담았어요. 장보기 탭에서 확인하세요.": "Added to your To buy list. Check the Shopping tab.",
+  "이미 구매 예정 목록에 있어요. 중복으로 추가하지 않았어요.": "Already on your To buy list. No duplicate was added.",
+
   "재료 상태": "Item status",
   "날짜순": "By date",
   "이름순": "By name",
