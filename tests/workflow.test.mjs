@@ -60,7 +60,7 @@ test('shopping lists isolate accounts, preserve data on disk failure and block c
  storage.values.set(shoppingKey('b'),'{invalid');await b.load();assert.ok(b.getSnapshot().error);await assert.rejects(b.add([{name:'Eggs'}]));assert.equal(storage.values.get(shoppingKey('b')),'{invalid');
 });
 test('all recipes can be browsed without claiming expired ingredients are available',()=>{
- assert.equal(recommend([],day,true).length,6);assert.ok(recommend([],day,true).every(r=>r.have.length===0&&r.missing.length===r.ingredients.length));
+ assert.equal(recommend([],day,true).length,20);assert.ok(recommend([],day,true).every(r=>r.have.length===0&&r.missing.length===r.ingredients.length));
  assert.equal(recommend([{...item('두부'),date:'2020-01-01'}],day,true)[0].have.length,0);
 });
 

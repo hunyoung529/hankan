@@ -14,3 +14,9 @@ export function refreshReminders(items,enabled,locale='ko'){
   for(const entry of plan)await Notifications.scheduleNotificationAsync({content:{title:entry.title,body:entry.body,sound:true,data:{screen:'pantry'}},trigger:{type:Notifications.SchedulableTriggerInputTypes.DATE,date:new Date(entry.time),channelId:'pantry'}});return plan.length;
  });queue=run.catch(()=>{});return run;
 }
+
+export async function sendTestReminder(locale='ko'){
+ if(!await askReminders(locale))throw Error('휴대폰 설정에서 알림을 허용해 주세요.');
+ const t=createTranslator(locale);
+ return Notifications.scheduleNotificationAsync({identifier:'hankan-test-notification',content:{title:t('한칸 테스트 알림'),body:t('이 알림이 보이면 기기의 알림 표시를 확인한 거예요.'),sound:true,data:{screen:'pantry'}},trigger:Platform.OS==='android'?{channelId:'pantry'}:null});
+}

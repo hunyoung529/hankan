@@ -3,7 +3,7 @@
     "name": "한칸",
     "slug": "hankan-mobile",
     "scheme": "hankan",
-    "version": "0.11.0",
+    "version": "0.12.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "platforms": [
@@ -14,7 +14,7 @@
     "ios": {
       "bundleIdentifier": "com.hankan.app",
       "supportsTablet": true,
-      "buildNumber": "11",
+      "buildNumber": "12",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "en",
         "CFBundleLocalizations": [
@@ -29,7 +29,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
-      "versionCode": 11
+      "versionCode": 12
     },
     "plugins": [
       [

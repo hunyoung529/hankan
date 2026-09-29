@@ -6,6 +6,8 @@ import { randomUUID } from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { INGREDIENTS, today, daysLeft, inferIngredient, normalizeItem } from './src/domain.mjs';
+import {ReminderPreview} from './src/ReminderPreview';
+import {recipeView,recipeInventory} from './src/recipeView.mjs';
 import {pantryView} from './src/pantryView.mjs';
 import { recommend } from './src/domain.mjs';
 import { createRepository, visibleItems } from './src/repository.mjs';
@@ -311,7 +313,11 @@ function Application() {
   });
   const sorted=pantryView(items,{place:filter,status:pantryStatus,sort:pantrySort,query:search,day,locale,translate:t});
   const resetPantryView=()=>{setFilter('전체');setPantryStatus('all');setPantrySort('expiry');setSearch('');};
-  const recipes = recommend(items, day, true);
+  const recipeItems=recipeInventory(snapshot.records);
+  const recipes = recommend(recipeItems, day, true);
+  const [recipeFilter,setRecipeFilter]=useState('all'),[recipeTime,setRecipeTime]=useState('0'),[recipeQuery,setRecipeQuery]=useState('');
+  const visibleRecipes=recipeView(recipes,{filter:recipeFilter,maxMinutes:Number(recipeTime),query:recipeQuery,translate:t});
+  const resetRecipeView=()=>{setRecipeFilter('all');setRecipeTime('0');setRecipeQuery('');};
   const recipe=recipes.find(r=>r.id===recipeSelection?.id)||null;
   const [quickUse,setQuickUse]=useState(null);
   const [cooking,setCooking]=useState(null),[recipeBusy,setRecipeBusy]=useState(false),[recipeError,setRecipeError]=useState('');
@@ -319,7 +325,7 @@ function Application() {
   const shopping=useMemo(()=>createShoppingStore({owner,storage:AsyncStorage,newId:randomUUID}),[owner]);
   const shoppingSnapshot=useSyncExternalStore(shopping.subscribe,shopping.getSnapshot,shopping.getSnapshot);
   const shoppingActive=useRef(shopping),recipeLock=useRef(false);shoppingActive.current=shopping;
-  useEffect(()=>{shopping.load();setCooking(null);setQuickUse(null);setFilter('전체');setPantryStatus('all');setPantrySort('expiry');setSearch('');setRecipeBusy(false);},[shopping]);
+  useEffect(()=>{shopping.load();setCooking(null);setQuickUse(null);setFilter('전체');setPantryStatus('all');setPantrySort('expiry');setSearch('');setRecipeBusy(false);resetRecipeView();},[shopping]);
   const addMissing=async()=>{if(recipeLock.current||!recipe)return;recipeLock.current=true;setRecipeBusy(true);setRecipeError('');try{await shopping.add(recipe.missing.map(ingredient=>({ingredient,name:ingredient})));if(shoppingActive.current===shopping){setRecipe(null);setPage('shopping');setNotice('부족한 주재료를 장보기 목록에 담았어요. 중복 항목은 하나로 모아요.');}}catch(e){if(shoppingActive.current===shopping)setRecipeError(e.message);}finally{recipeLock.current=false;if(shoppingActive.current===shopping)setRecipeBusy(false);}};
 
   if (!authReady || !snapshot.ready) return <SafeAreaView style={s.loading}><ActivityIndicator color={colors.green} /><Text style={s.muted}>{t("냉장고를 열고 있어요…")}</Text></SafeAreaView>;
@@ -365,7 +371,8 @@ function Application() {
             const d = daysLeft(item.date, day);
             return <View key={item.id} testID="ingredient-card" style={s.item}><FoodIcon name={item.ingredient} /><Pressable accessibilityRole="button" testID={`edit-${item.name}`} onPress={() => setEditor({
                 ...item,
-                quantity: String(item.quantity)
+                quantity: String(item.quantity),
+                baseMutation:snapshot.records.find(r=>r.id===item.id)?.mutationId
               })} style={{
                 flex: 1,
                 gap: 4
@@ -385,7 +392,12 @@ function Application() {
     <Text style={s.footnote}>{t('날짜는 포장지의 보관방법과 함께 확인해 주세요.\n사진은 서버로 보내지 않고 기기에서 읽어요.')}</Text>
    </>}
    {page==='shopping'&&<ShoppingPanel key={owner||'guest'} store={shopping} snapshot={shoppingSnapshot} onRegister={item=>setEditor(shoppingDraft(item,randomUUID(),t))}/>}
-   {page === 'recipes' && <><Text style={s.eyebrow}>COOK WHAT YOU HAVE</Text><Text style={s.title}>{t('남은 재료가\n오늘의 메뉴로.')}</Text><Text style={s.muted}>{t('먼저 쓸 재료를 담은 메뉴부터 골랐어요.\n준비된 6개 레시피에서 재료 조합을 비교해요.')}</Text>{items.some(i => !i.date || daysLeft(i.date, day) < 0) && <Text style={s.warning}>{t("날짜가 지났거나 미정인 재료는 보유 재료 계산에서 제외했어요.")}</Text>}<Button testID="open-shopping" secondary onPress={()=>setPage('shopping')}>{t('장보기 목록')}</Button>{recipes.map(r => <Pressable key={r.id} accessibilityRole="button" testID={`recipe-${r.id}`} onPress={() => setRecipe(r)} style={s.recipeCard}><View style={s.row}><FoodIcon name={r.ingredients[0]} /><View style={{
+   {page === 'recipes' && <><Text style={s.eyebrow}>COOK WHAT YOU HAVE</Text><Text style={s.title}>{t('남은 재료가\n오늘의 메뉴로.')}</Text><Text style={s.muted}>{t('준비된 {count}개 레시피에서 보유 재료와 먼저 쓸 재료를 비교해요.',{count:recipes.length})}</Text>{(conflicts.length>0||items.some(i => !i.date || !i.verified || daysLeft(i.date, day) < 0)) && <Text style={s.warning}>{t("날짜 미확인·지남·동기화 충돌 재료는 추천 계산에서 제외해요.")}</Text>}<Button testID="open-shopping" secondary onPress={()=>setPage('shopping')}>{t('장보기 목록')}</Button><Field testID="recipe-search" label={t('메뉴·재료 검색')} value={recipeQuery} onChangeText={setRecipeQuery}/>
+    <Choices testID="recipe-filter" values={[['all','전체'],['ready','주재료 모두 있음'],['one','1가지 더 필요'],['urgent','임박 재료 활용']]} value={recipeFilter} onChange={setRecipeFilter} labelFor={t}/>
+    <Choices testID="recipe-time" values={[['0','시간 제한 없음'],['15','15분 이내'],['30','30분 이내']]} value={recipeTime} onChange={setRecipeTime} labelFor={t}/>
+    <Text style={s.muted}>{t('메뉴 {count}개 표시',{count:visibleRecipes.length})}</Text>
+    {(recipeFilter!=='all'||recipeTime!=='0'||recipeQuery)&&<Button secondary testID="recipe-reset" onPress={resetRecipeView}>{t('메뉴 조건 초기화')}</Button>}
+    {visibleRecipes.map(r => <Pressable key={r.id} accessibilityRole="button" testID={`recipe-${r.id}`} onPress={() => setRecipe(r)} style={s.recipeCard}><View style={s.row}><FoodIcon name={r.ingredients[0]} /><View style={{
                 flex: 1,
                 gap: 5
               }}><Text style={s.h3}>{t(r.title)}</Text><Text style={s.small}>{t(r.subtitle)}</Text></View></View><View style={[s.sectionTitle, {
@@ -400,7 +412,7 @@ function Application() {
               marginTop: 10
             }]}>{t('먼저 쓰기 · {names}', {
                 names: r.urgent.map(x => t(x)).join(', ')
-              })}</Text>}</Pressable>)}{!recipes.length && <View style={s.empty}><Text style={s.h3}>{t("재료가 모이면 메뉴를 찾아드려요.")}</Text><Text style={s.muted}>{t("날짜를 확인한 재료를 등록해 주세요.")}</Text></View>}<Text style={s.footnote}>{t("분량과 양념은 레시피에서 확인해 주세요. 메뉴를 열어도 재고를 자동으로 차감하지 않아요.")}</Text></>}
+              })}</Text>}</Pressable>)}{!visibleRecipes.length && <View style={s.empty}><Text style={s.h3}>{t("조건에 맞는 메뉴가 없어요.")}</Text><Text style={s.muted}>{t("검색어나 보유 재료·시간 조건을 바꿔 보세요.")}</Text></View>}<Text style={s.footnote}>{t("분량과 양념은 레시피에서 확인해 주세요. 메뉴를 열어도 재고를 자동으로 차감하지 않아요.")}</Text></>}
    {page === 'account' && <><View style={s.panel}><Text style={s.h3}>{t('언어')}</Text><Text style={s.muted}>{t('기기 언어를 기준으로 시작하며, 선택한 언어는 이 기기에 저장해요.')}</Text><Choices testID="language" values={LANGUAGES.map(x => [x.code, x.label])} value={locale} disabled={languageBusy} onChange={setLanguage} /><Text style={s.small}>{t('저장된 이름과 메모는 번역하지 않아요.')}</Text></View><View style={s.panel}><Text style={s.h3}>{t('앱 정보')}</Text><View style={s.sectionTitle}><Text style={s.muted}>{t('현재 버전')}</Text><Text testID="settings-version" style={s.h3}>v{APP_VERSION}</Text></View><Text style={s.small}>{Platform.OS === 'web' ? t('웹 미리보기') : t('빌드 번호') + ' ' + (Platform.OS === 'ios' ? IOS_BUILD : ANDROID_BUILD) + ' · ' + (Platform.OS === 'ios' ? 'iOS' : 'Android')}</Text></View><Text style={s.eyebrow}>MY KITCHEN, ANYWHERE</Text><Text style={s.title}>{t('내 냉장고를\n안전하게 이어서.')}</Text>
     <View style={s.panel}><Text style={s.h3}>{owner ? t("서버에 연결된 내 계정") : t("로그인하고 재료 보관하기")}</Text><Text style={s.muted}>{owner ? session.user.email : t("기기 안의 기록은 로그인 없이도 사용할 수 있어요. 로그인하면 같은 계정의 휴대폰끼리 재료를 동기화해요.")}</Text>
      {!cloudConfigured ? <Text style={s.warning}>{t("서버 연결 설정을 준비 중이에요. 지금은 이 기기에 저장됩니다.")}</Text> : owner ? <><Text style={s.muted}>{network.error ? t(network.error) : network.time ? t('마지막 동기화 {time}', {
@@ -433,7 +445,7 @@ function Application() {
                 })}</Text><Button secondary onPress={() => run(() => repo.resolve(r.id, 'server'))}>{t("서버 내용 사용")}</Button><Button onPress={() => run(() => repo.resolve(r.id, 'local'))}>{t("이 기기 내용 사용")}</Button></View>)}</View>}
     <View style={s.panel}><View style={s.sectionTitle}><Text style={s.h3}>{t("기한 알림")}</Text><Switch testID="alerts" accessibilityLabel={t("기한 알림")} disabled={!remindersSupported} value={notifyEnabled} onValueChange={toggleAlerts} trackColor={{
                 true: '#789b6f'
-              }} /></View><Text style={s.muted}>{remindersSupported ? t("3일 전 · 1일 전 · 당일 오전 9시에 알려드려요. 휴대폰에서 직접 예약해 서버 알림 비용이 없어요.") : t("휴대폰용 한칸 앱에서 날짜 알림을 켤 수 있어요.")}</Text>{remindersSupported && <Text style={s.small}>{t(notifyInfo)} · {t('앱을 열 때 예약을 갱신해요.')}</Text>}</View>
+              }} /></View><Text style={s.muted}>{remindersSupported ? t("3일 전 · 1일 전 · 당일 오전 9시에 알려드려요. 휴대폰에서 직접 예약해 서버 알림 비용이 없어요.") : t("휴대폰용 한칸 앱에서 날짜 알림을 켤 수 있어요.")}</Text>{remindersSupported && <Text style={s.small}>{t(notifyInfo)} · {t('앱을 열 때 예약을 갱신해요.')}</Text>}<ReminderPreview items={items} enabled={notifyEnabled}/></View>
     <View style={s.panel}><Text style={s.h3}>{t("백업과 복원")}</Text><Text style={s.muted}>{t("파일로 따로 보관할 수도 있어요. 백업에는 재료 이름·날짜·메모가 포함됩니다.")}</Text><Button secondary testID="export" onPress={() => run(() => exportText(JSON.stringify({
               format: 'hankan-v1',
               items
@@ -464,7 +476,7 @@ function Application() {
           }}>×</Text></Pressable></View>}
   <View style={s.nav}><Pressable testID="nav-shopping" accessibilityRole="button" onPress={()=>setPage('shopping')} style={s.navItem}><Text style={[s.navText,page==='shopping'&&s.active]}>{t('장보기')}</Text></Pressable><Pressable testID="nav-pantry" accessibilityRole="button" onPress={() => setPage('pantry')} style={s.navItem}><Text style={[s.navText, page === 'pantry' && s.active]}>{t("▤ 우리 냉장고")}</Text></Pressable><Button testID="nav-add" onPress={() => setEditor(blank())} style={s.add}>＋</Button><Pressable testID="nav-recipes" accessibilityRole="button" onPress={() => setPage('recipes')} style={s.navItem}><Text style={[s.navText, page === 'recipes' && s.active]}>{t("♧ 오늘의 메뉴")}</Text></Pressable></View>
   {editor && <Editor key={editor.id} editing={items.some(item=>item.id===editor.id)} initial={editor} previous={previousNames(items)} shoppingReady={shoppingSnapshot.ready&&!shoppingSnapshot.error} onAddShopping={item=>shopping.add([pantryShoppingEntry(item)])} onClose={() => setEditor(null)} onSave={async (data, another) => {
-        await repo.save(data);
+        await repo.save(data,editor.baseMutation);
         if (activeRepo.current !== repo) return;
         setEditor(another ? {
           ...blank(),
